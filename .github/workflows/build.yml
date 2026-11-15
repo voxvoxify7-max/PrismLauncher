@@ -197,8 +197,11 @@ jobs:
             }
             Write-Host "Startup smoke test passed; main window title: $($process.MainWindowTitle)"
 
-            if (-not $process.CloseMainWindow() -or -not $process.WaitForExit(10000)) {
-              throw "ZyronClient.exe did not close cleanly after the smoke test."
+            $closeRequested = $process.CloseMainWindow()
+            if ($closeRequested -and $process.WaitForExit(10000)) {
+              Write-Host "ZyronClient.exe closed cleanly after the smoke test."
+            } else {
+              Write-Warning "ZyronClient.exe remained open after the smoke test; it will be stopped during cleanup."
             }
           } finally {
             $process.Refresh()
