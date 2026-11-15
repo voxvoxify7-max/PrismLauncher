@@ -383,7 +383,12 @@ include(ECMQtDeclareLoggingCategory)
 
 ####################################### Program Info #######################################
 
-set(Launcher_APP_BINARY_NAME "prismlauncher" CACHE STRING "Name of the Launcher binary")
+if(WIN32)
+    set(Launcher_APP_BINARY_NAME_DEFAULT "ZyronClient")
+else()
+    set(Launcher_APP_BINARY_NAME_DEFAULT "prismlauncher")
+endif()
+set(Launcher_APP_BINARY_NAME "${Launcher_APP_BINARY_NAME_DEFAULT}" CACHE STRING "Name of the Launcher binary")
 add_subdirectory(program_info)
 
 ####################################### Install layout #######################################

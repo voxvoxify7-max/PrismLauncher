@@ -47,6 +47,7 @@
 #include <QJsonParseError>
 #include <QTextStream>
 #include <QTimer>
+#include <limits>
 #include "Json.h"
 
 #include <QDebug>
@@ -54,7 +55,65 @@
 #include <FileSystem.h>
 #include <QSaveFile>
 
+#ifdef Q_OS_WIN
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#include <wincrypt.h>
+#endif
+
 enum AccountListVersion { MojangMSA = 3 };
+
+#ifdef Q_OS_WIN
+namespace {
+constexpr auto WindowsTokenStorage = "windows-dpapi-v1";
+
+bool protectAccountData(const QByteArray& data, QByteArray& protectedData, DWORD& error)
+{
+    if (static_cast<quint64>(data.size()) > std::numeric_limits<DWORD>::max()) {
+        error = ERROR_FILE_TOO_LARGE;
+        return false;
+    }
+
+    DATA_BLOB input{ static_cast<DWORD>(data.size()), reinterpret_cast<BYTE*>(const_cast<char*>(data.constData())) };
+    DATA_BLOB output{};
+    if (!CryptProtectData(&input, L"Zyron Client account data", nullptr, nullptr, nullptr, CRYPTPROTECT_UI_FORBIDDEN, &output)) {
+        error = GetLastError();
+        return false;
+    }
+
+    protectedData = QByteArray(reinterpret_cast<const char*>(output.pbData), static_cast<qsizetype>(output.cbData));
+    SecureZeroMemory(output.pbData, output.cbData);
+    LocalFree(output.pbData);
+    return true;
+}
+
+bool unprotectAccountData(const QByteArray& protectedData, QByteArray& data, DWORD& error)
+{
+    if (static_cast<quint64>(protectedData.size()) > std::numeric_limits<DWORD>::max()) {
+        error = ERROR_FILE_TOO_LARGE;
+        return false;
+    }
+
+    DATA_BLOB input{ static_cast<DWORD>(protectedData.size()), reinterpret_cast<BYTE*>(const_cast<char*>(protectedData.constData())) };
+    DATA_BLOB output{};
+    LPWSTR description = nullptr;
+    if (!CryptUnprotectData(&input, &description, nullptr, nullptr, nullptr, CRYPTPROTECT_UI_FORBIDDEN, &output)) {
+        error = GetLastError();
+        return false;
+    }
+
+    data = QByteArray(reinterpret_cast<const char*>(output.pbData), static_cast<qsizetype>(output.cbData));
+    SecureZeroMemory(output.pbData, output.cbData);
+    LocalFree(output.pbData);
+    if (description) {
+        LocalFree(description);
+    }
+    return true;
+}
+}  // namespace
+#endif
 
 AccountList::AccountList(QObject* parent) : QAbstractListModel(parent)
 {
@@ -459,7 +518,19 @@ bool AccountList::loadList()
     // Make sure the format version matches.
     auto listVersion = root.value("formatVersion").toVariant().toInt();
     if (listVersion == AccountListVersion::MojangMSA) {
-        return loadV3(root);
+        if (!loadV3(root)) {
+            return false;
+        }
+#ifdef Q_OS_WIN
+        if (root.value("tokenStorage").toString() != WindowsTokenStorage) {
+            qInfo() << "Migrating account data to Windows DPAPI-protected storage.";
+            if (!saveList()) {
+                qCritical() << "Failed to migrate account data to Windows DPAPI-protected storage.";
+                return false;
+            }
+        }
+#endif
+        return true;
     }
 
     QString newName = "accounts-old.json";
@@ -471,10 +542,59 @@ bool AccountList::loadList()
 
 bool AccountList::loadV3(QJsonObject& root)
 {
+    const QString tokenStorage = root.value("tokenStorage").toString();
+#ifdef Q_OS_WIN
+    if (!tokenStorage.isEmpty() && tokenStorage != WindowsTokenStorage) {
+        qCritical() << "Unsupported account token storage format:" << tokenStorage;
+        return false;
+    }
+    const bool usesProtectedStorage = tokenStorage == WindowsTokenStorage;
+#else
+    if (!tokenStorage.isEmpty()) {
+        qCritical() << "This account list uses Windows-only protected storage and cannot be opened on this platform.";
+        return false;
+    }
+#endif
+
+    QList<QJsonObject> accountStates;
+    const QJsonArray accounts = root.value("accounts").toArray();
+    accountStates.reserve(accounts.size());
+    for (const QJsonValue& accountVal : accounts) {
+        const QJsonObject storedAccount = accountVal.toObject();
+        QJsonObject accountObj = storedAccount;
+#ifdef Q_OS_WIN
+        if (usesProtectedStorage) {
+            const auto encodedData = storedAccount.value("windowsDpapi").toString().toLatin1();
+            const auto encryptedData = QByteArray::fromBase64(encodedData, QByteArray::AbortOnBase64DecodingErrors);
+            if (encodedData.isEmpty() || encryptedData.isEmpty()) {
+                qCritical() << "An account entry is missing valid Windows-protected data.";
+                return false;
+            }
+
+            QByteArray accountData;
+            DWORD error = ERROR_SUCCESS;
+            if (!unprotectAccountData(encryptedData, accountData, error)) {
+                qCritical() << "Failed to decrypt protected account data. Windows error:" << error;
+                return false;
+            }
+
+            auto parsedAccount = Json::requireObject(accountData, "protected account data");
+            SecureZeroMemory(accountData.data(), static_cast<SIZE_T>(accountData.size()));
+            if (!parsedAccount) {
+                qCritical() << "Failed to parse decrypted account data:" << parsedAccount.error();
+                return false;
+            }
+            accountObj = parsedAccount.value();
+            if (storedAccount.value("active").toBool(false)) {
+                accountObj["active"] = true;
+            }
+        }
+#endif
+        accountStates.append(accountObj);
+    }
+
     beginResetModel();
-    QJsonArray accounts = root.value("accounts").toArray();
-    for (QJsonValue accountVal : accounts) {
-        QJsonObject accountObj = accountVal.toObject();
+    for (QJsonObject accountObj : accountStates) {
         MinecraftAccountPtr account = MinecraftAccount::loadFromJsonV3(accountObj);
         if (account.get() != nullptr) {
             auto profileId = account->profileId();
@@ -528,6 +648,18 @@ bool AccountList::saveList()
     QJsonArray accounts;
     for (MinecraftAccountPtr account : m_accounts) {
         QJsonObject accountObj = account->saveToJson();
+#ifdef Q_OS_WIN
+        QByteArray accountData = QJsonDocument(accountObj).toJson(QJsonDocument::Compact);
+        QByteArray encryptedData;
+        DWORD error = ERROR_SUCCESS;
+        if (!protectAccountData(accountData, encryptedData, error)) {
+            SecureZeroMemory(accountData.data(), static_cast<SIZE_T>(accountData.size()));
+            qCritical() << "Failed to protect account data with Windows DPAPI. Windows error:" << error;
+            return false;
+        }
+        SecureZeroMemory(accountData.data(), static_cast<SIZE_T>(accountData.size()));
+        accountObj = QJsonObject{ { "windowsDpapi", QString::fromLatin1(encryptedData.toBase64()) } };
+#endif
         if (m_defaultAccount == account) {
             accountObj["active"] = true;
         }
@@ -535,6 +667,9 @@ bool AccountList::saveList()
     }
 
     // Insert the account list into the root object.
+#ifdef Q_OS_WIN
+    root.insert("tokenStorage", WindowsTokenStorage);
+#endif
     root.insert("accounts", accounts);
 
     // Create a JSON document object to convert our JSON to bytes.

@@ -650,8 +650,8 @@ Application::Application(int& argc, char** argv) : QApplication(argc, argv)
         m_settings.reset(new INISettingsObject({ BuildConfig.LAUNCHER_CONFIGFILE, "polymc.cfg", "multimc.cfg" }, this));
 
         // Theming
-        m_settings->registerSetting("IconTheme", QString());
-        m_settings->registerSetting("ApplicationTheme", QString());
+        m_settings->registerSetting("IconTheme", QStringLiteral("pe_blue"));
+        m_settings->registerSetting("ApplicationTheme", QStringLiteral("zyron"));
         m_settings->registerSetting("BackgroundCat", QString("kitteh"));
 
         // Remembered state

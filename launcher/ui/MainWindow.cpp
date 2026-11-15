@@ -170,6 +170,11 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
         auto* infoLayout = new QVBoxLayout(infoWidget);
         infoLayout->setContentsMargins(2, 0, 2, 0);
 
+        auto* brandLabel = new QLabel(BuildConfig.LAUNCHER_DISPLAYNAME, infoWidget);
+        brandLabel->setAlignment(Qt::AlignCenter);
+        brandLabel->setStyleSheet(QStringLiteral("font-weight: 600; color: #60a5fa; padding: 6px 0;"));
+        infoLayout->addWidget(brandLabel);
+
         m_changeIconButton = new QToolButton(infoWidget);
         m_changeIconButton->setObjectName(QStringLiteral("changeIconButton"));
         m_changeIconButton->setIconSize({ ui->instanceToolBar->minimumWidth(), 80 });

@@ -90,6 +90,9 @@
    <property name="windowTitle">
     <string>Instance Toolbar</string>
    </property>
+   <property name="allowedAreas">
+    <set>Qt::ToolBarArea::LeftToolBarArea|Qt::ToolBarArea::RightToolBarArea</set>
+   </property>
    <property name="iconSize">
     <size>
      <width>16</width>
@@ -106,7 +109,7 @@
     <bool>true</bool>
    </property>
    <attribute name="toolBarArea">
-    <enum>RightToolBarArea</enum>
+    <enum>LeftToolBarArea</enum>
    </attribute>
    <attribute name="toolBarBreak">
     <bool>false</bool>
@@ -341,7 +344,7 @@
     <iconset theme="launch"/>
    </property>
    <property name="text">
-    <string>&amp;Launch</string>
+    <string>&amp;Play</string>
    </property>
    <property name="toolTip">
     <string>Launch the selected instance.</string>

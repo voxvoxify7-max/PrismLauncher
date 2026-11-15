@@ -90,10 +90,12 @@
 #include "AssetsUtils.h"
 #include "MinecraftLoadAndCheck.h"
 #include "PackProfile.h"
+#include "modplatform/ModIndex.h"
 
 #include "tools/BaseProfiler.h"
 
 #include <QActionGroup>
+#include <QDir>
 #include <QMainWindow>
 #include <QScreen>
 #include <QStandardPaths>
@@ -193,6 +195,7 @@ void MinecraftInstance::loadSpecificSettings()
     m_settings->registerSetting("AutomaticJava", false);
     m_settings->registerSetting("UseLatestMinecraftVersion", false);
     m_settings->registerSetting("UseLatestMinecraftVersionType", "release");
+    m_settings->registerSetting("GameDir", "");
 
     if (auto global_settings = globalSettings()) {
         m_settings->registerOverride(global_settings->getSetting("JavaPath"), locationOverride);
@@ -371,6 +374,15 @@ void MinecraftInstance::populateLaunchMenu(QMenu* menu)
 
 QString MinecraftInstance::gameRoot() const
 {
+    const QString configuredGameDir = m_settings->get("GameDir").toString().trimmed();
+    if (!configuredGameDir.isEmpty()) {
+        QString gameDir = configuredGameDir;
+        if (QDir::isRelativePath(gameDir)) {
+            gameDir = QDir(instanceRoot()).absoluteFilePath(gameDir);
+        }
+        return QDir::cleanPath(QFileInfo(gameDir).absoluteFilePath());
+    }
+
     QFileInfo mcDir(FS::PathCombine(instanceRoot(), "minecraft"));
     QFileInfo dotMCDir(FS::PathCombine(instanceRoot(), ".minecraft"));
 
@@ -1110,6 +1122,31 @@ QString MinecraftInstance::getStatusbarDescription()
 
     QString description;
     description.append(tr("Minecraft %1").arg(mcVersion));
+
+    QStringList loaderNames;
+    if (const auto loaderTypes = m_components->getModLoaders(); loaderTypes.has_value()) {
+        for (const auto loader : ModPlatform::modLoaderTypesToList(*loaderTypes)) {
+            QString loaderName = ModPlatform::getModLoaderAsString(loader);
+            if (loaderName == "neoforge") {
+                loaderName = "NeoForge";
+            } else if (loaderName == "bta-babric") {
+                loaderName = "BTA Babric";
+            } else if (loaderName == "legacy-fabric") {
+                loaderName = "Legacy Fabric";
+            } else if (!loaderName.isEmpty()) {
+                loaderName[0] = loaderName[0].toUpper();
+                loaderName.replace('-', ' ');
+            }
+            if (!loaderName.isEmpty()) {
+                loaderNames.append(loaderName);
+            }
+        }
+    }
+    if (loaderNames.isEmpty()) {
+        loaderNames.append(tr("Vanilla"));
+    }
+    description.append(tr(", %1").arg(loaderNames.join(", ")));
+
     if (m_settings->get("ShowGameTime").toBool()) {
         if (lastTimePlayed() > 0 && lastLaunch() > 0) {
             QDateTime lastLaunchTime = QDateTime::fromMSecsSinceEpoch(lastLaunch());

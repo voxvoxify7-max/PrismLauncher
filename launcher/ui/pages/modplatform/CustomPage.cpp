@@ -43,6 +43,7 @@
 #include "Filter.h"
 #include "Version.h"
 #include "meta/Index.h"
+#include "meta/MojangVersionList.h"
 #include "meta/VersionList.h"
 #include "minecraft/VanillaInstanceCreationTask.h"
 #include "ui/dialogs/NewInstanceDialog.h"
@@ -50,6 +51,7 @@
 CustomPage::CustomPage(NewInstanceDialog* dialog, QWidget* parent) : QWidget(parent), m_dialog(dialog), m_ui(new Ui::CustomPage)
 {
     m_ui->setupUi(this);
+    m_mojangVersions = std::make_unique<Meta::MojangVersionList>();
     connect(m_ui->versionList, &VersionSelectWidget::selectedVersionChanged, this, &CustomPage::setSelectedVersion);
     filterChanged();
     connect(m_ui->alphaFilter, &QCheckBox::checkStateChanged, this, &CustomPage::filterChanged);
@@ -71,8 +73,7 @@ CustomPage::CustomPage(NewInstanceDialog* dialog, QWidget* parent) : QWidget(par
 void CustomPage::openedImpl()
 {
     if (!m_initialized) {
-        auto vlist = APPLICATION->metadataIndex()->get("net.minecraft");
-        m_ui->versionList->initialize(vlist.get());
+        m_ui->versionList->initialize(m_mojangVersions.get());
         m_initialized = true;
     } else {
         suggestCurrent();

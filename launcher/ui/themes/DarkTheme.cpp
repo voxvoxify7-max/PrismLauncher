@@ -91,3 +91,38 @@ QString DarkTheme::tooltip()
 {
     return "";
 }
+
+QString ZyronTheme::id()
+{
+    return "zyron";
+}
+
+QString ZyronTheme::name()
+{
+    return QObject::tr("Zyron Dark");
+}
+
+QPalette ZyronTheme::colorScheme()
+{
+    QPalette palette;
+    palette.setColor(QPalette::Window, QColor(24, 27, 35));
+    palette.setColor(QPalette::WindowText, Qt::white);
+    palette.setColor(QPalette::Base, QColor(16, 19, 26));
+    palette.setColor(QPalette::AlternateBase, QColor(27, 31, 41));
+    palette.setColor(QPalette::ToolTipBase, Qt::white);
+    palette.setColor(QPalette::ToolTipText, Qt::white);
+    palette.setColor(QPalette::Text, Qt::white);
+    palette.setColor(QPalette::Button, QColor(32, 37, 49));
+    palette.setColor(QPalette::ButtonText, Qt::white);
+    palette.setColor(QPalette::BrightText, Qt::red);
+    palette.setColor(QPalette::Link, QColor(96, 165, 250));
+    palette.setColor(QPalette::Highlight, QColor(37, 99, 235));
+    palette.setColor(QPalette::HighlightedText, Qt::white);
+    palette.setColor(QPalette::PlaceholderText, QColor(139, 149, 167));
+    return fadeInactive(palette, fadeAmount(), fadeColor());
+}
+
+QColor ZyronTheme::fadeColor()
+{
+    return QColor(24, 27, 35);
+}
