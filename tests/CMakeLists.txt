@@ -40,6 +40,7 @@ endforeach()
 
 create_test_sourcelist(DRIVER_SOURCES LauncherTests.cpp ${TEST_SOURCES})
 add_executable(LauncherTests ${DRIVER_SOURCES})
+target_sources(LauncherTests PRIVATE MojangVersionList_test.h)
 target_link_libraries(LauncherTests PRIVATE Launcher_logic Qt${QT_VERSION_MAJOR}::Test)
 
 # Add back some stuff ECMAddTests would (https://api.kde.org/ecm/module/ECMAddTests.html)
