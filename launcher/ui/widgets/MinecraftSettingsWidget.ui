@@ -65,6 +65,43 @@
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_5">
            <item>
+            <widget class="QGroupBox" name="gameDirectoryGroupBox">
+             <property name="title">
+              <string>Game Directory</string>
+             </property>
+             <layout class="QVBoxLayout" name="gameDirectoryLayout">
+              <item>
+               <widget class="QLabel" name="gameDirectoryDescription">
+                <property name="text">
+                 <string>Choose where this profile stores its worlds and game data. Changing this does not move existing data.</string>
+                </property>
+                <property name="wordWrap">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <layout class="QHBoxLayout" name="gameDirectoryPathLayout">
+                <item>
+                 <widget class="QLineEdit" name="gameDirectoryEdit">
+                  <property name="placeholderText">
+                   <string>Default profile directory</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="gameDirectoryBrowse">
+                  <property name="text">
+                   <string>Browse</string>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+             </layout>
+            </widget>
+           </item>
+           <item>
             <widget class="QGroupBox" name="windowSizeGroupBox">
              <property name="enabled">
               <bool>true</bool>
@@ -946,6 +983,8 @@ It is most likely you will need to change the path - please refer to the mod's w
   <!-- game window settings -->
   <tabstop>windowSizeGroupBox</tabstop>
   <tabstop>maximizedCheckBox</tabstop>
+  <tabstop>gameDirectoryEdit</tabstop>
+  <tabstop>gameDirectoryBrowse</tabstop>
   <tabstop>windowWidthSpinBox</tabstop>
   <tabstop>windowHeightSpinBox</tabstop>
   <tabstop>closeAfterLaunchCheck</tabstop>

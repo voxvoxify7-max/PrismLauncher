@@ -61,6 +61,8 @@ The translation effort for Prism Launcher is hosted on [Weblate](https://hosted.
 
 If you want to build Prism Launcher yourself, check the [build instructions](https://prismlauncher.org/wiki/development/build-instructions).
 
+For the MSVC Windows build used by this fork, see the [Windows build guide](BUILDING_WINDOWS.md).
+
 ## Sponsors & Partners
 
 We thank all the wonderful backers over at Open Collective! Support Prism Launcher by [becoming a backer](https://opencollective.com/prismlauncher).

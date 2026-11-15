@@ -20,7 +20,9 @@ set(TEST_SOURCES
     JavaVersion_test.cpp
     Packwiz_test.cpp
     Index_test.cpp
+    MojangVersionList_test.cpp
     Version_test.cpp
+    AccountList_test.cpp
     ModrinthUrl_test.cpp
     MetaComponentParse_test.cpp
     CatPack_test.cpp

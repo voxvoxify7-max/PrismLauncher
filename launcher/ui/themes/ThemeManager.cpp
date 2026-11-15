@@ -145,6 +145,7 @@ void ThemeManager::initializeWidgets()
     themeDebugLog() << "Loading Built-in Theme:" << addTheme(std::make_unique<SystemTheme>(m_defaultStyle, m_defaultPalette, true));
     auto darkThemeId = addTheme(std::make_unique<DarkTheme>());
     themeDebugLog() << "Loading Built-in Theme:" << darkThemeId;
+    themeDebugLog() << "Loading Built-in Theme:" << addTheme(std::make_unique<ZyronTheme>());
     themeDebugLog() << "Loading Built-in Theme:" << addTheme(std::make_unique<BrightTheme>());
 
     themeDebugLog() << "<> Initializing System Widget Themes";
