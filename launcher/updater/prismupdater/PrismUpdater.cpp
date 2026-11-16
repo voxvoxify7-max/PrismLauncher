@@ -910,7 +910,7 @@ void PrismUpdaterApp::performInstall(const QFileInfo& file)
                "\n"
                "This likely means that a previous update attempt failed. Please ensure your installation is in working order before "
                "proceeding.\n"
-               "Check the Prism Launcher updater log at: \n"
+               "Check the launcher updater log at: \n"
                "%7\n"
                "for details on the last update attempt.\n"
                "\n"
