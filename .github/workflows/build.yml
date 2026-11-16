@@ -22,7 +22,7 @@ on:
       build-type:
         description: Type of build (Debug or Release)
         type: string
-        default: Debug
+        default: Release
 
 permissions: {}
 
@@ -114,7 +114,7 @@ jobs:
 
       - name: Configure project
         run: |
-          cmake --preset "$CMAKE_PRESET" -D VCPKG_HOST_TRIPLET="$VCPKG_TRIPLET" -D VCPKG_TARGET_TRIPLET="$VCPKG_TRIPLET"
+          cmake --preset "$CMAKE_PRESET" -D VCPKG_HOST_TRIPLET="$VCPKG_TRIPLET" -D VCPKG_TARGET_TRIPLET="$VCPKG_TRIPLET" -D Launcher_APP_BINARY_NAME="${{ runner.os == 'Windows' && 'ZyronClient' || 'prismlauncher' }}"
 
       - name: Run build
         run: |
@@ -135,6 +135,119 @@ jobs:
         shell: bash
         run: |
           echo "version=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Stage and smoke-test Zyron x64 release
+        if: ${{ runner.os == 'Windows' && matrix.artifact-name == 'Windows-MSVC' && env.BUILD_TYPE == 'Release' }}
+        shell: pwsh
+        run: |
+          $dist = Join-Path $env:GITHUB_WORKSPACE "dist"
+          New-Item -ItemType Directory -Force -Path $dist | Out-Null
+
+          cmake --install build --config $env:BUILD_TYPE --component Runtime --prefix $dist
+          if ($LASTEXITCODE -ne 0) { throw "Installing Zyron runtime files failed." }
+          cmake --install build --config $env:BUILD_TYPE --component bundle --prefix $dist
+          if ($LASTEXITCODE -ne 0) { throw "Installing Zyron runtime dependencies failed." }
+
+          $exe = Join-Path $dist "ZyronClient.exe"
+          if (-not (Test-Path -LiteralPath $exe -PathType Leaf)) {
+            throw "Required executable not found: $exe"
+          }
+
+          $dlls = @(Get-ChildItem -LiteralPath $dist -Filter "*.dll" -File -Recurse)
+          if ($dlls.Count -eq 0) {
+            throw "No runtime DLLs were staged under $dist."
+          }
+          if (-not (Get-ChildItem -LiteralPath $dist -Filter "qwindows.dll" -File -Recurse | Select-Object -First 1)) {
+            throw "The Qt Windows platform plugin (qwindows.dll) was not staged."
+          }
+          Write-Host "Staged $($dlls.Count) runtime DLLs."
+
+          $vcRedist = Join-Path $dist "vc_redist.x64.exe"
+          Invoke-WebRequest -UseBasicParsing -Uri "https://aka.ms/vs/17/release/vc_redist.x64.exe" -OutFile $vcRedist
+          $signature = Get-AuthenticodeSignature -FilePath $vcRedist
+          if ($signature.Status -ne "Valid" -or $signature.SignerCertificate.Subject -notmatch "Microsoft Corporation") {
+            throw "The downloaded Visual C++ Redistributable does not have a valid Microsoft signature."
+          }
+          @(
+            "Zyron Client Windows x64 runtime"
+            ""
+            "Run ZyronClient.exe to open the launcher. If Windows reports a missing"
+            "Microsoft Visual C++ runtime, install vc_redist.x64.exe once and retry."
+            "Minecraft installation and launch require network access and a valid"
+            "Microsoft account that owns Minecraft: Java Edition."
+          ) | Set-Content -LiteralPath (Join-Path $dist "README.txt") -Encoding utf8
+
+          $process = Start-Process -FilePath $exe -WorkingDirectory $dist -PassThru
+          try {
+            $deadline = (Get-Date).AddSeconds(30)
+            do {
+              $process.Refresh()
+              if ($process.HasExited) {
+                throw "ZyronClient.exe exited during startup with code $($process.ExitCode)."
+              }
+              if ($process.MainWindowHandle -ne [IntPtr]::Zero) {
+                break
+              }
+              Start-Sleep -Seconds 1
+            } while ((Get-Date) -lt $deadline)
+
+            $process.Refresh()
+            if ($process.HasExited -or $process.MainWindowHandle -eq [IntPtr]::Zero) {
+              throw "ZyronClient.exe did not create a main window within 30 seconds."
+            }
+            Write-Host "Startup smoke test passed; main window title: $($process.MainWindowTitle)"
+
+            $windowsClosed = 0
+            while (-not $process.HasExited -and $windowsClosed -lt 3) {
+              $process.Refresh()
+              if ($process.MainWindowHandle -eq [IntPtr]::Zero) {
+                throw "ZyronClient.exe remained alive without a main window after close."
+              }
+
+              $windowTitle = $process.MainWindowTitle
+              if (-not $process.CloseMainWindow()) {
+                throw "Could not close ZyronClient.exe window: $windowTitle"
+              }
+              $windowsClosed++
+              if ($process.WaitForExit(10000)) {
+                break
+              }
+            }
+
+            $process.Refresh()
+            if (-not $process.HasExited) {
+              throw "ZyronClient.exe did not exit after closing its launcher windows."
+            }
+            Write-Host "ZyronClient.exe exited after closing $windowsClosed window(s)."
+          } finally {
+            $process.Refresh()
+            if (-not $process.HasExited) {
+              Stop-Process -Id $process.Id -Force
+            }
+          }
+
+          $zip = Join-Path $env:GITHUB_WORKSPACE "ZyronClient-Windows-x64-Release.zip"
+          Compress-Archive -Path (Join-Path $dist "*") -DestinationPath $zip -CompressionLevel Optimal -Force
+          if (-not (Test-Path -LiteralPath $zip -PathType Leaf)) {
+            throw "The Zyron release archive was not created."
+          }
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $archive = [System.IO.Compression.ZipFile]::OpenRead($zip)
+          try {
+            if (-not ($archive.Entries | Where-Object FullName -EQ "ZyronClient.exe")) {
+              throw "The release archive does not contain ZyronClient.exe at its root."
+            }
+          } finally {
+            $archive.Dispose()
+          }
+      - name: Upload Zyron x64 release artifact
+        if: ${{ runner.os == 'Windows' && matrix.artifact-name == 'Windows-MSVC' && env.BUILD_TYPE == 'Release' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: ZyronClient-Windows-x64-Release-${{ steps.short-version.outputs.version }}
+          path: ZyronClient-Windows-x64-Release.zip
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Package (Linux)
         if: ${{ runner.os == 'Linux' }}

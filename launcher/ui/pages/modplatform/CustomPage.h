@@ -36,6 +36,7 @@
 #pragma once
 
 #include <QWidget>
+#include <memory>
 
 #include "BaseVersion.h"
 #include "ui/pages/BasePage.h"
@@ -45,6 +46,9 @@ class CustomPage;
 }
 
 class NewInstanceDialog;
+namespace Meta {
+class MojangVersionList;
+}
 
 class CustomPage : public QWidget, public BasePage {
     Q_OBJECT
@@ -83,6 +87,7 @@ class CustomPage : public QWidget, public BasePage {
     bool m_initialized = false;
     NewInstanceDialog* m_dialog = nullptr;
     Ui::CustomPage* m_ui = nullptr;
+    std::unique_ptr<Meta::MojangVersionList> m_mojangVersions;
     bool m_versionSetByUser = false;
     BaseVersion::Ptr m_selectedVersion;
     BaseVersion::Ptr m_selectedLoaderVersion;

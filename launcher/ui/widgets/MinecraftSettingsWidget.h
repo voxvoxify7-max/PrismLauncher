@@ -60,6 +60,8 @@ class MinecraftSettingsWidget : public QWidget {
     void saveSelectedLoaders();
     void saveDataPacksPath();
     void selectDataPacksFolder();
+    void saveGameDirectory();
+    void selectGameDirectory();
 
    protected:
     MinecraftInstance* m_instance;

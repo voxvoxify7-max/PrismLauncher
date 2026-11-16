@@ -40,6 +40,8 @@
 #include "ui_MinecraftSettingsWidget.h"
 
 #include <QFileDialog>
+#include <QDir>
+#include <QFileInfo>
 #include "Application.h"
 #include "BuildConfig.h"
 #include "Json.h"
@@ -57,6 +59,7 @@ MinecraftSettingsWidget::MinecraftSettingsWidget(MinecraftInstance* instance, QW
         m_ui->settingsTabs->removeTab(1);
 
         m_ui->openGlobalSettingsButton->setVisible(false);
+        m_ui->gameDirectoryGroupBox->hide();
         m_ui->instanceAccountGroupBox->hide();
         m_ui->serverJoinGroupBox->hide();
         m_ui->globalDataPacksGroupBox->hide();
@@ -110,6 +113,8 @@ MinecraftSettingsWidget::MinecraftSettingsWidget(MinecraftInstance* instance, QW
         });
         connect(m_ui->dataPacksPathEdit, &QLineEdit::editingFinished, this, &MinecraftSettingsWidget::saveDataPacksPath);
         connect(m_ui->dataPacksPathBrowse, &QPushButton::clicked, this, &MinecraftSettingsWidget::selectDataPacksFolder);
+        connect(m_ui->gameDirectoryEdit, &QLineEdit::editingFinished, this, &MinecraftSettingsWidget::saveGameDirectory);
+        connect(m_ui->gameDirectoryBrowse, &QPushButton::clicked, this, &MinecraftSettingsWidget::selectGameDirectory);
 
         connect(m_ui->loaderGroup, &QGroupBox::toggled, this, [this](bool value) {
             m_instance->settings()->set("OverrideModDownloadLoaders", value);
@@ -328,6 +333,12 @@ void MinecraftSettingsWidget::loadSettings()
     m_ui->dataPacksPathEdit->setText(settings->get("GlobalDataPacksPath").toString().trimmed());
     m_ui->globalDataPacksGroupBox->blockSignals(false);
     m_ui->dataPacksPathEdit->blockSignals(false);
+
+    if (m_instance != nullptr) {
+        const QString gameDir = settings->get("GameDir").toString().trimmed();
+        m_ui->gameDirectoryEdit->setText(gameDir);
+        m_ui->gameDirectoryEdit->setPlaceholderText(m_instance->gameRoot());
+    }
 }
 
 void MinecraftSettingsWidget::saveSettings()
@@ -640,4 +651,40 @@ void MinecraftSettingsWidget::selectDataPacksFolder()
 
     m_ui->dataPacksPathEdit->setText(path);
     m_instance->settings()->set("GlobalDataPacksPath", path);
+}
+
+void MinecraftSettingsWidget::saveGameDirectory()
+{
+    if (m_instance == nullptr) {
+        return;
+    }
+
+    QString path = m_ui->gameDirectoryEdit->text().trimmed();
+    if (!path.isEmpty()) {
+        QDir gameDir(path);
+        if (gameDir.isRelative()) {
+            path = QDir(m_instance->instanceRoot()).absoluteFilePath(path);
+        }
+        path = QDir::cleanPath(QFileInfo(path).absoluteFilePath());
+    }
+
+    m_instance->settings()->set("GameDir", path);
+    m_ui->gameDirectoryEdit->setText(path);
+}
+
+void MinecraftSettingsWidget::selectGameDirectory()
+{
+    if (m_instance == nullptr) {
+        return;
+    }
+
+    const QString startDir = m_ui->gameDirectoryEdit->text().trimmed().isEmpty() ? m_instance->gameRoot()
+                                                                                 : m_ui->gameDirectoryEdit->text().trimmed();
+    const QString path = QFileDialog::getExistingDirectory(this, tr("Select Minecraft Game Directory"), startDir);
+    if (path.isEmpty()) {
+        return;
+    }
+
+    m_ui->gameDirectoryEdit->setText(path);
+    saveGameDirectory();
 }

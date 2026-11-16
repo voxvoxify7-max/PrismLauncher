@@ -461,6 +461,8 @@ set(META_SOURCES
     meta/BaseEntity.h
     meta/VersionList.cpp
     meta/VersionList.h
+    meta/MojangVersionList.cpp
+    meta/MojangVersionList.h
     meta/Version.cpp
     meta/Version.h
     meta/Index.cpp
@@ -1283,6 +1285,9 @@ target_link_libraries(Launcher_logic
     LocalPeer
     Launcher_rainbow
 )
+if(WIN32)
+    target_link_libraries(Launcher_logic crypt32)
+endif()
 if (TARGET ${Launcher_QT_DBUS})
     target_compile_definitions(Launcher_logic PUBLIC WITH_QTDBUS)
 endif()

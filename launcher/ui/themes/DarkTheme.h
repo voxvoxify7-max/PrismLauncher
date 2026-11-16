@@ -49,3 +49,12 @@ class DarkTheme : public FusionTheme {
     double fadeAmount() override;
     QColor fadeColor() override;
 };
+
+class ZyronTheme : public DarkTheme {
+   public:
+    QString id() override;
+    QString name() override;
+    QPalette colorScheme() override;
+    QString appStyleSheet() override;
+    QColor fadeColor() override;
+};
