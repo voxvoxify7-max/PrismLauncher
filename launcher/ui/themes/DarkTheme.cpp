@@ -105,24 +105,29 @@ QString ZyronTheme::name()
 QPalette ZyronTheme::colorScheme()
 {
     QPalette palette;
-    palette.setColor(QPalette::Window, QColor(24, 27, 35));
-    palette.setColor(QPalette::WindowText, Qt::white);
-    palette.setColor(QPalette::Base, QColor(16, 19, 26));
-    palette.setColor(QPalette::AlternateBase, QColor(27, 31, 41));
-    palette.setColor(QPalette::ToolTipBase, Qt::white);
-    palette.setColor(QPalette::ToolTipText, Qt::white);
-    palette.setColor(QPalette::Text, Qt::white);
-    palette.setColor(QPalette::Button, QColor(32, 37, 49));
-    palette.setColor(QPalette::ButtonText, Qt::white);
+    palette.setColor(QPalette::Window, QColor(13, 15, 18));
+    palette.setColor(QPalette::WindowText, QColor(223, 227, 234));
+    palette.setColor(QPalette::Base, QColor(17, 20, 24));
+    palette.setColor(QPalette::AlternateBase, QColor(23, 27, 32));
+    palette.setColor(QPalette::ToolTipBase, QColor(23, 27, 32));
+    palette.setColor(QPalette::ToolTipText, QColor(223, 227, 234));
+    palette.setColor(QPalette::Text, QColor(223, 227, 234));
+    palette.setColor(QPalette::Button, QColor(34, 40, 49));
+    palette.setColor(QPalette::ButtonText, QColor(223, 227, 234));
     palette.setColor(QPalette::BrightText, Qt::red);
-    palette.setColor(QPalette::Link, QColor(96, 165, 250));
-    palette.setColor(QPalette::Highlight, QColor(37, 99, 235));
+    palette.setColor(QPalette::Link, QColor(42, 111, 224));
+    palette.setColor(QPalette::Highlight, QColor(42, 111, 224));
     palette.setColor(QPalette::HighlightedText, Qt::white);
-    palette.setColor(QPalette::PlaceholderText, QColor(139, 149, 167));
+    palette.setColor(QPalette::PlaceholderText, QColor(142, 150, 163));
     return fadeInactive(palette, fadeAmount(), fadeColor());
+}
+
+QString ZyronTheme::appStyleSheet()
+{
+    return "QToolTip { color: #dfe3ea; background-color: #171b20; border: 1px solid #242a32; }";
 }
 
 QColor ZyronTheme::fadeColor()
 {
-    return QColor(24, 27, 35);
+    return QColor(13, 15, 18);
 }

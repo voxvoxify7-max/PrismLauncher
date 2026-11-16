@@ -66,6 +66,7 @@
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QProgressDialog>
+#include <QSize>
 #include <QShortcut>
 #include <QStatusBar>
 #include <QTextEdit>
@@ -170,10 +171,23 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
         auto* infoLayout = new QVBoxLayout(infoWidget);
         infoLayout->setContentsMargins(2, 0, 2, 0);
 
-        auto* brandLabel = new QLabel(BuildConfig.LAUNCHER_DISPLAYNAME, infoWidget);
-        brandLabel->setAlignment(Qt::AlignCenter);
-        brandLabel->setStyleSheet(QStringLiteral("font-weight: 600; color: #60a5fa; padding: 6px 0;"));
-        infoLayout->addWidget(brandLabel);
+        auto* brandHeader = new QWidget(infoWidget);
+        auto* brandLayout = new QHBoxLayout(brandHeader);
+        brandLayout->setContentsMargins(2, 0, 2, 6);
+        brandLayout->setSpacing(6);
+        brandLayout->addStretch();
+
+        auto* brandIcon = new QLabel(brandHeader);
+        brandIcon->setPixmap(APPLICATION->logo().pixmap(QSize(20, 20)));
+        brandIcon->setFixedSize(20, 20);
+        brandLayout->addWidget(brandIcon);
+
+        auto* brandLabel = new QLabel(BuildConfig.LAUNCHER_DISPLAYNAME.toUpper(), brandHeader);
+        brandLabel->setAlignment(Qt::AlignVCenter | Qt::AlignLeft);
+        brandLabel->setStyleSheet(QStringLiteral("font-weight: 600; color: #dfe3ea;"));
+        brandLayout->addWidget(brandLabel);
+        brandLayout->addStretch();
+        infoLayout->addWidget(brandHeader);
 
         m_changeIconButton = new QToolButton(infoWidget);
         m_changeIconButton->setObjectName(QStringLiteral("changeIconButton"));

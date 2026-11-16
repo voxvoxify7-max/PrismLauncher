@@ -55,5 +55,6 @@ class ZyronTheme : public DarkTheme {
     QString id() override;
     QString name() override;
     QPalette colorScheme() override;
+    QString appStyleSheet() override;
     QColor fadeColor() override;
 };
